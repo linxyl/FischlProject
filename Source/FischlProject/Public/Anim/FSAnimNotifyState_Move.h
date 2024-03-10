@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AnimNotifies/AnimNotify_PlayMontageNotify.h"
-#include "FSAnimNotify_Move.generated.h"
+#include "FSAnimNotifyState_Move.generated.h"
 
 class AFSCharacter;
 
@@ -12,24 +12,23 @@ class AFSCharacter;
  * 
  */
 UCLASS()
-class FISCHLPROJECT_API UFSAnimNotify_Move : public UAnimNotify_PlayMontageNotifyWindow
+class FISCHLPROJECT_API UFSAnimNotifyState_Move : public UAnimNotify_PlayMontageNotifyWindow
 {
 	GENERATED_BODY()
 
 public:
-	UFSAnimNotify_Move();
+	UFSAnimNotifyState_Move();
 
+private:
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
-	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation);
+	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 
-protected:
 	UPROPERTY(EditAnywhere)
 	float ForwardVelocity;
 
 	UPROPERTY(EditAnywhere)
 	float UpVelocity;
 
-protected:
 	AFSCharacter* Instigator;
 };

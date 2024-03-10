@@ -9,23 +9,23 @@
 class UFSAction;
 class AFSCharacter;
 
-USTRUCT(Blueprintable)
-struct FNextAction
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-	FName ActionName;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-	float Time;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-	bool bHasArg;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-	float Arg;
-};
+//USTRUCT(Blueprintable)
+//struct FNextAction
+//{
+//	GENERATED_BODY()
+//
+//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
+//	FName ActionName;
+//
+//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
+//	float Time;
+//
+//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
+//	bool bHasArg;
+//
+//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
+//	float Arg;
+//};
 
 class UFSAction;
 
@@ -59,6 +59,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	void EndBlock(AFSCharacter* Instigator);
 
+	void SetLeftBranchFlag(bool bFlag)
+	{
+		bLeftBranchFlag = bFlag;
+	}
+
+	void SetRightBranchFlag(bool bFlag)
+	{
+		bRightBranchFlag = bFlag;
+	}
+
 	UPROPERTY(BlueprintReadWrite, Category = "Actions")
 	bool bCanAct;
 
@@ -68,7 +78,7 @@ protected:
 
 	void SetCanAct(AFSCharacter* Instigator, bool b = true);
 
-	void StartNextAction(AFSCharacter* Instigator);
+	//void StartNextAction(AFSCharacter* Instigator);
 
 	UPROPERTY(EditAnywhere, Category = "Actions")
 	TArray<TSubclassOf<UFSAction>> DefaultActions;
@@ -79,15 +89,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Actions")
 	bool bAddAllActions;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Actions")
-	FNextAction NextAction;
+	//UPROPERTY(BlueprintReadWrite, Category = "Actions")
+	//FNextAction NextAction;
 
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+public:
+	bool bLeftBranchFlag;
+	bool bRightBranchFlag;
+
 public:	
 	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-		
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
 };

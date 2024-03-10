@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "FSAnimNotify_DisableRootMotion.h"
+#include "Anim/FSAnimNotifyState_DisableRootMotion.h"
 
-void UFSAnimNotify_DisableRootMotion::BranchingPointNotifyBegin(FBranchingPointNotifyPayload& BranchingPointPayload)
+void UFSAnimNotifyState_DisableRootMotion::BranchingPointNotifyBegin(FBranchingPointNotifyPayload& BranchingPointPayload)
 {
 	Super::BranchingPointNotifyBegin(BranchingPointPayload);
 
@@ -13,13 +13,13 @@ void UFSAnimNotify_DisableRootMotion::BranchingPointNotifyBegin(FBranchingPointN
 		{
 			if (FAnimMontageInstance* MontageInstance = AnimInstance->GetMontageInstanceForID(BranchingPointPayload.MontageInstanceID))
 			{
-				MontageInstance->PushDisableRootMotion();
+				MontageInstance->PushDisableRootMotion(); 
 			}
 		}
 	}
 }
 
-void UFSAnimNotify_DisableRootMotion::BranchingPointNotifyEnd(FBranchingPointNotifyPayload& BranchingPointPayload)
+void UFSAnimNotifyState_DisableRootMotion::BranchingPointNotifyEnd(FBranchingPointNotifyPayload& BranchingPointPayload)
 {
 	Super::BranchingPointNotifyEnd(BranchingPointPayload);
 

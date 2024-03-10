@@ -14,7 +14,7 @@ UFSAction::UFSAction()
 	bSetRotation = 1;
 
 	bSlowGravityAfterAction = 1;
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UFSAction::StartAction_Implementation(AFSCharacter* Instigator, bool bHasArg, float Arg)
@@ -31,7 +31,7 @@ void UFSAction::StartAction_Implementation(AFSCharacter* Instigator, bool bHasAr
 		{
 			Instigator->SetActorRotation(FRotator(0.f, Instigator->LockedRot.Yaw, 0.f));
 		}
-		else
+		else if (bHasArg)
 		{
 			Instigator->SetActorRotation(FRotator(0.f, Arg, 0.f));
 		}
@@ -55,7 +55,7 @@ void UFSAction::StopAction_Implementation(AFSCharacter* Instigator)
 
 	if (bSlowGravityAfterAction)
 	{
-		Instigator->GetCharacterMovement()->GravityScale = UFSFunctionLibrary::DefaultGravity();
+		Instigator->GetCharacterMovement()->GravityScale = UFSFunctionLibrary::SlowGravity();
 	}
 }
 

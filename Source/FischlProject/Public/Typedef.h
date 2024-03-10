@@ -8,7 +8,7 @@
 
 #define DEFAULT_GRAVITY	1.f
 #define FAST_GRAVITY	1.5f
-#define SLOW_GRAVITY	0.3f
+#define SLOW_GRAVITY	0.1f
 #define NO_GRAVITY	0.f
 
 #define MAX_INS_NUM		4

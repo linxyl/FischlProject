@@ -1,10 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+#include "GameFramework/CharacterMovementComponent.h"
+
 #include "Component/FSActionComponent.h"
 #include "Action/FSAction_ComboBase.h"
 #include "Actor/FSCharacter.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Actor/FSFischl.h"
 
 // Sets default values for this component's properties
 UFSActionComponent::UFSActionComponent()
@@ -19,8 +21,8 @@ UFSActionComponent::UFSActionComponent()
 
 	CurrentAction = nullptr;
 
-	NextAction.ActionName = "";
-	NextAction.Time = 0.f;
+	//NextAction.ActionName = "";
+	//NextAction.Time = 0.f;
 }
 
 UFSAction* UFSActionComponent::FindAction(FName ActionName)
@@ -94,10 +96,7 @@ bool UFSActionComponent::StartActionByName(FName ActionName, AFSCharacter* Insti
 			}
 			else
 			{
-				NextAction.ActionName = ActionName;
-				NextAction.Time = GetWorld()->TimeSeconds;
-				NextAction.bHasArg = bHasArg;
-				NextAction.Arg = Arg;
+				return false;
 			}
 
 			return true;
@@ -127,6 +126,8 @@ bool UFSActionComponent::StopCurrentAction(AFSCharacter* Instigator)
 	StopAction(CurrentAction, Instigator);
 	CurrentAction = nullptr;
 	SetCanAct(Instigator, true);
+	SetLeftBranchFlag(false);
+	SetRightBranchFlag(false);
 
 	return true;
 }
@@ -134,7 +135,10 @@ bool UFSActionComponent::StopCurrentAction(AFSCharacter* Instigator)
 void UFSActionComponent::EndBlock(AFSCharacter* Instigator)
 {
 	SetCanAct(Instigator, true);
-	StartNextAction(Instigator);
+	AFSFischl* Fischl = Cast<AFSFischl>(Instigator);
+	if (Fischl)
+		Fischl->StartNextInstruction();
+	//StartNextAction(Instigator);
 }
 
 void UFSActionComponent::SetCanAct(AFSCharacter* Instigator, bool b /*= true*/)
@@ -144,11 +148,12 @@ void UFSActionComponent::SetCanAct(AFSCharacter* Instigator, bool b /*= true*/)
 	Instigator->SetOrientToMovement(b);
 }
 
-void UFSActionComponent::StartNextAction(AFSCharacter* Instigator)
-{
-	if (GetWorld()->TimeSeconds - NextAction.Time <= 0.4)
-		StartActionByName(NextAction.ActionName, Instigator, NextAction.bHasArg, NextAction.Arg);
-}
+//void UFSActionComponent::StartNextAction(AFSCharacter* Instigator)
+//{
+//	if (GetWorld()->TimeSeconds - NextAction.Time <= 0.4)
+//		StartActionByName(NextAction.ActionName, Instigator, NextAction.bHasArg, NextAction.Arg);
+//	NextAction.Time = 0.f;
+//}
 
 // Called when the game starts
 void UFSActionComponent::BeginPlay()

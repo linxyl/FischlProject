@@ -47,9 +47,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Attribute")
 	uint32 bSlowGravityAfterAction : 1;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Attribute")
-	FDamageParam DamageParam;
-
 	UPROPERTY(BlueprintReadWrite)
 	TArray<AActor*> DamagedActors;
 

@@ -1,17 +1,17 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "FSAnimNotify_Move.h"
+#include "Anim/FSAnimNotifyState_Move.h"
 #include "Actor/FSCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
-UFSAnimNotify_Move::UFSAnimNotify_Move()
+UFSAnimNotifyState_Move::UFSAnimNotifyState_Move()
 {
 
 }
 
-void UFSAnimNotify_Move::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
+void UFSAnimNotifyState_Move::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
 {
 	if (MeshComp)
 	{
@@ -24,7 +24,7 @@ void UFSAnimNotify_Move::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequ
 	}
 }
 
-void UFSAnimNotify_Move::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime)
+void UFSAnimNotifyState_Move::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime)
 {
 	if (Instigator && !Instigator->bAnimNotifyStateEnd)
 	{
@@ -46,7 +46,7 @@ void UFSAnimNotify_Move::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSeque
 	}
 }
 
-void UFSAnimNotify_Move::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UFSAnimNotifyState_Move::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
 	Super::NotifyEnd(MeshComp, Animation);
 }

@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "AnimNotifies/AnimNotify_PlayMontageNotify.h"
+#include "FSFunctionLibrary.h"
 #include "FSAnimNotifyState_Collision.generated.h"
 
 class AFSCharacter;
 class UFSAction;
+class UDataTable;
 
 /**
  * 
@@ -21,10 +23,13 @@ public:
 	UFSAnimNotifyState_Collision();
 
 	UPROPERTY(EditAnywhere)
-	FName SocketStart;
+	FName Socket;
 
 	UPROPERTY(EditAnywhere)
-	FName SocketEnd;
+	FVector OffsetStart;
+
+	UPROPERTY(EditAnywhere)
+	FVector OffsetEnd;
 
 	UPROPERTY(EditAnywhere)
 	FName ActionName;
@@ -38,10 +43,17 @@ public:
 	UPROPERTY(EditAnywhere)
 	bool bOnce;
 
+	UPROPERTY(EditAnywhere)
+	UDataTable* DataTable;
+
+	UPROPERTY(EditAnywhere)
+	FName RowName;
+
+private:
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
+	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 
-protected:
 	AFSCharacter* Instigator;
 
 	UFSAction* Action;
@@ -49,4 +61,6 @@ protected:
 	TArray<FHitResult> AllResults;
 
 	bool OnceFlag;
+
+	FDamageParam* DamageParam;
 };

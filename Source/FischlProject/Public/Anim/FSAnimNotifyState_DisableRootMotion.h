@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "AnimNotifies/AnimNotify_PlayMontageNotify.h"
-#include "FSAnimNotify_DisableRootMotion.generated.h"
+#include "FSAnimNotifyState_DisableRootMotion.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FISCHLPROJECT_API UFSAnimNotify_DisableRootMotion : public UAnimNotify_PlayMontageNotifyWindow
+class FISCHLPROJECT_API UFSAnimNotifyState_DisableRootMotion : public UAnimNotify_PlayMontageNotifyWindow
 {
 	GENERATED_BODY()
 

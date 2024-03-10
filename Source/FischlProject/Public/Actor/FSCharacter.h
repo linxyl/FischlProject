@@ -12,6 +12,7 @@ class UFSAttributeComponent;
 class UFSActionComponent;
 class UNiagaraSystem;
 class UFSWeaponComponent;
+class UFSShootComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnReceivedDamage, AActor*, InstigatorActor, FVector, ImpactPoint, FDamageParam, DamageParam);
 
@@ -46,16 +47,21 @@ public:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	UFSActionComponent* ActionComp;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UFSShootComponent* ShootComp;
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector RootOffset;
 
 	UPROPERTY(BlueprintReadWrite)
 	bool bEnDoubleJump;
 
-	FOnReceivedDamage OnReceivedDamage;
-
 	UPROPERTY(BlueprintReadWrite)
 	bool bAnimNotifyStateEnd;
+
+	UFSWeaponComponent* WeaponComponent;
+
+	FOnReceivedDamage OnReceivedDamage;
 
 protected:
 

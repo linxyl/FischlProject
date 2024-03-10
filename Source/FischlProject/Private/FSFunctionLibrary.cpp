@@ -1,15 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "FSFunctionLibrary.h"
+
 #include "Kismet/KismetMathLibrary.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Actor/FSCharacter.h"
 #include "NiagaraFunctionLibrary.h"
+
+#include "Actor/FSCharacter.h"
 #include "Typedef.h"
-#include "Components/CapsuleComponent.h"
 
 bool UFSFunctionLibrary::ApplyFuncDamage(AActor* DamageCauser, AActor* TargetActor, UPARAM(ref) TArray<AActor*>& DamagedActor, const FVector ImpactPoint, const FDamageParam& DamageParam)
 {
@@ -38,6 +39,11 @@ bool UFSFunctionLibrary::ApplyFuncDamage(AActor* DamageCauser, AActor* TargetAct
 		TargetActor->CustomTimeDilation = 1.f;
 	}
 
+	if (!ensure(&DamageParam))
+	{
+		return false;
+	}
+
 	TargetActor->CustomTimeDilation = DamageParam.Dilation;
 
 	FTimerHandle& TimerHandle = TimerMap.Add(Target, FTimerHandle());
@@ -54,10 +60,10 @@ bool UFSFunctionLibrary::ApplyFuncDamage(AActor* DamageCauser, AActor* TargetAct
 
 	if (Target->GetMovementComponent()->IsFalling() || DamageParam.bEnbleFly)
 	{
-		if (!Target->GetMovementComponent()->IsFalling() && DamageParam.bEnbleFly)
-		{
-			Target->GetCharacterMovement()->GravityScale = SLOW_GRAVITY;
-		}
+		//if (!Target->GetMovementComponent()->IsFalling() && DamageParam.bEnbleFly)
+		//{
+			Target->GetCharacterMovement()->GravityScale = UFSFunctionLibrary::SlowGravity();
+		//}
 
 		FVector Direction = TargetActor->GetActorLocation() - DamageCauser->GetActorLocation();
 		float Temp;

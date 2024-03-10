@@ -2,23 +2,26 @@
 
 
 #include "Actor/FSFischl.h"
-#include "Component/FSCameraComponent.h"
+
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "EngineUtils.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WindDirectionalSourceComponent.h"
+#include "GameplayTagContainer.h"
+#include "NiagaraFunctionLibrary.h"
+
+#include "Component/FSCameraComponent.h"
 #include "Actor/FSEnemy.h"
 #include "Component/FSAttributeComponent.h"
 #include "Component/FSActionComponent.h"
 #include "Component/FSWeaponComponent.h"
-#include "Components/WindDirectionalSourceComponent.h"
 #include "Typedef.h"
-#include <GameplayTagContainer.h>
 #include "Action/FSAction.h"
 #include "Projectile/FSProjectileBase.h"
-#include "NiagaraFunctionLibrary.h"
+#include "FSPlayerController.h"
 
 // Sets default values
 AFSFischl::AFSFischl()
@@ -72,224 +75,26 @@ AFSFischl::AFSFischl()
 	GetCharacterMovement()->BrakingFriction = 0.7f;
 }
 
-// Called when the game starts or when spawned
-void AFSFischl::BeginPlay()
+void AFSFischl::TryImplementInstruction(FInstruction Instruction)
 {
-	Super::BeginPlay();
-}
-
-void AFSFischl::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-}
-
-void AFSFischl::MoveForward(float Value)
-{
-	MoveForwardVal = Value;
-
-	if (nullptr == ActionComp->CurrentAction)
+	if (!StartActionByInstruction(Instruction))
 	{
-		if (Value != 0.f)
-			StopAnimMontage();
-
-		FRotator ControlRot = GetControlRotation();
-		ControlRot.Pitch = 0.0f;
-		ControlRot.Roll = 0.0f;
-
-		AddMovementInput(ControlRot.Vector(), Value);
-	}
-	else if (ActionComp->CurrentAction->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted")))
-	{
-		FRotator ControlRot = GetControlRotation();
-		ControlRot.Pitch = 0.0f;
-		ControlRot.Roll = 0.0f;
-
-		AddMovementInput(ControlRot.Vector(), Value);
+		NextInstruction = Instruction;
+		NextInstructionTime = GetWorld()->TimeSeconds;
 	}
 }
 
-void AFSFischl::MoveRight(float Value)
+bool AFSFischl::StartActionByInstruction(FInstruction Instruction)
 {
-	MoveRightVal = Value;
+	EInstruction_Seq Seq = Instruction.Seq;
+	EInstruction_Hold Hold = Instruction.Hold;
+	EInstruction_Tail Tail = Instruction.Tail;
+	float Arg = Instruction.Arg;
 
-	if (nullptr == ActionComp->CurrentAction)
-	{
-		if(Value != 0.f)
-			StopAnimMontage();
-
-		FRotator ControlRot = GetControlRotation();
-		ControlRot.Pitch = 0.0f;
-		ControlRot.Roll = 0.0f;
-
-		FVector RightVector = FRotationMatrix(ControlRot).GetScaledAxis(EAxis::Y);
-
-		AddMovementInput(RightVector, Value);
-	}
-	else if (ActionComp->CurrentAction->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted")))
-	{
-		FRotator ControlRot = GetControlRotation();
-		ControlRot.Pitch = 0.0f;
-		ControlRot.Roll = 0.0f;
-
-		FVector RightVector = FRotationMatrix(ControlRot).GetScaledAxis(EAxis::Y);
-
-		AddMovementInput(RightVector, Value);
-	}
-}
-
-void AFSFischl::LookYaw(float Value)
-{
-	APawn::AddControllerYawInput(Value);
-}
-
-void AFSFischl::LookPitch(float Value)
-{
-	if ((GetControlRotation().Pitch < 270.f && GetControlRotation().Pitch >= 180.f && Value > 0) || (GetControlRotation().Pitch > 80.f && GetControlRotation().Pitch <= 90.f && Value < 0))
-		return;
-
-	APawn::AddControllerPitchInput(Value);
-}
-
-void AFSFischl::W_Press()
-{
-	if (bIsLocked)
-	{
-		FRotator Rot = GetControlRotation();
-		InsSeq.Instruction[InsSeq.Pos] = GetInsHead(Rot);
-		InsSeq.InstigateTime[InsSeq.Pos] = GetWorld()->TimeSeconds;
-
-		if (++InsSeq.Pos >= MAX_INS_NUM)
-		{
-			InsSeq.Pos = 0;
-		}
-	}
-}
-
-void AFSFischl::S_Press()
-{
-	if (bIsLocked)
-	{
-		FRotator Rot = GetControlRotation();
-		Rot.Yaw += 180;
-		InsSeq.Instruction[InsSeq.Pos] = GetInsHead(Rot);
-		InsSeq.InstigateTime[InsSeq.Pos] = GetWorld()->TimeSeconds;
-
-		if (++InsSeq.Pos >= MAX_INS_NUM)
-		{
-			InsSeq.Pos = 0;
-		}
-	}
-}
-
-void AFSFischl::A_Press()
-{
-	if (bIsLocked)
-	{
-		FRotator Rot = GetControlRotation();
-		Rot.Yaw -= 90;
-		InsSeq.Instruction[InsSeq.Pos] = GetInsHead(Rot);
-		InsSeq.InstigateTime[InsSeq.Pos] = GetWorld()->TimeSeconds;
-
-		if (++InsSeq.Pos >= MAX_INS_NUM)
-		{
-			InsSeq.Pos = 0;
-		}
-	}
-}
-
-void AFSFischl::D_Press()
-{
-	if (bIsLocked)
-	{
-		FRotator Rot = GetControlRotation();
-		Rot.Yaw += 90;
-		InsSeq.Instruction[InsSeq.Pos] = GetInsHead(Rot);
-		InsSeq.InstigateTime[InsSeq.Pos] = GetWorld()->TimeSeconds;
-
-		if (++InsSeq.Pos >= MAX_INS_NUM)
-		{
-			InsSeq.Pos = 0;
-		}
-	}
-}
-
-EInstruction_Head AFSFischl::GetInsHead(FRotator& Rot)
-{
-	if (LockedActor)
-	{
-		LockedRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), LockedActor->GetActorLocation());
-	}
-	FRotator DelRot = UKismetMathLibrary::NormalizedDeltaRotator(LockedRot, Rot);
-
-	if (-45.0f <= DelRot.Yaw && DelRot.Yaw <= 45.0f)
-	{
-		return EI_Forward;
-	}
-	else if (45.0f < DelRot.Yaw && DelRot.Yaw < 135.0f)
-	{
-		return EI_Left;
-	}
-	else if (-45.0f > DelRot.Yaw && DelRot.Yaw > -135.0f)
-	{
-		return EI_Right;
-	}
-	else
-	{
-		return EI_Back;
-	}
-}
-
-EInstruction_Hold AFSFischl::GetInsHold()
-{
-	if (!bIsLocked || (abs(MoveForwardVal) <= KINDA_SMALL_NUMBER && abs(MoveRightVal) <= KINDA_SMALL_NUMBER))
-	{
-		return EI_None;
-	}
-
-	if (LockedActor)
-	{
-		LockedRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), LockedActor->GetActorLocation());
-	}
-
-	FRotator TargetRot = GetControlRotation();
-	TargetRot.Yaw += FVector(MoveForwardVal, MoveRightVal, 0.0f).Rotation().Yaw;
-
-	FRotator DelRot = UKismetMathLibrary::NormalizedDeltaRotator(LockedRot, TargetRot);
-
-	if (-45.0f <= DelRot.Yaw && DelRot.Yaw <= 45.0f)
-	{
-		return EI_Forward_Hold;
-	}
-	else if (45.0f < DelRot.Yaw && DelRot.Yaw < 135.0f)
-	{
-		return EI_Left_Hold;
-	}
-	else if (-45.0f > DelRot.Yaw && DelRot.Yaw > -135.0f)
-	{
-		return EI_Right_Hold;
-	}
-	else
-	{
-		return EI_Back_Hold;
-	}
-}
-
-float AFSFischl::GetInsDir()
-{
-	float CtrlDir = GetControlRotation().Yaw;
-
-	if (MoveForwardVal || MoveRightVal)
-		return CtrlDir + FVector(MoveForwardVal, MoveRightVal, 0.0f).Rotation().Yaw;
-	else
-		return GetActorRotation().Yaw;
-}
-
-bool AFSFischl::StartActionByInstruction(InstructionSeq& Seq, EInstruction_Hold Hold, EInstruction_Tail Tail, float Arg)
-{
 	// Jump
 	if (EI_Space_Press == Tail)
 	{
-		if (GetCharacterMovement()->IsFalling())
+		if (!GetCharacterMovement()->IsMovingOnGround())
 		{
 			TArray<AActor*> Arr;
 			StepComp->GetOverlappingActors(Arr, AActor::StaticClass());
@@ -314,15 +119,90 @@ bool AFSFischl::StartActionByInstruction(InstructionSeq& Seq, EInstruction_Hold 
 		}
 	}
 
-	// Attack
+	if (EI_Shift_Press == Tail)
+	{
+
+		if (MilitantStyle == EM_Wings)
+		{
+
+		}
+		else
+		{
+			TArray<AActor*> Arr;
+			StepComp->GetOverlappingActors(Arr, AActor::StaticClass());
+
+			//One of them is root component
+			if (Arr.Num() >= 2)
+			{
+				ActionComp->StartActionByName("StepDodge", this, true, Arg);
+			}
+			else if (GetCharacterMovement()->IsMovingOnGround())
+			{
+				ActionComp->StartActionByName("Dodge", this, true, Arg);
+			}
+		}
+	}
+
 	switch (MilitantStyle)
 	{
 	case EM_BowFight:
-		if (GetMovementComponent()->IsFalling())
+		if (GetMovementComponent()->IsMovingOnGround())
+		{
+			if (EI_LMouse_Holding07 == Tail)
+			{
+			}
+			else if (EI_RMouse_Holding07 == Tail)
+			{
+				if (ActionComp->StartActionByName("RoundhouseKick", this, MoveForwardVal || MoveRightVal, Arg)) return true;
+			}
+			else if (EI_LMouse_Press == Tail)
+			{
+				if (EI_Forward_Hold == Hold)
+				{
+					if (ActionComp->StartActionByName("WindChasingArrow", this)) return true;
+				}
+				if (EI_Back_Hold == Hold)
+				{
+					if (ActionComp->StartActionByName("ArrowFan", this)) return true;
+				}
+				if (ActionComp->bLeftBranchFlag)
+				{
+					if (ActionComp->StartActionByName("BowAttack_5", this, MoveForwardVal || MoveRightVal, Arg)) return true;
+				}
+				else
+				{
+					if (ActionComp->StartActionByName("NormalAttack", this, MoveForwardVal || MoveRightVal, Arg)) return true;
+				}
+			}
+			else if (EI_RMouse_Press == Tail)
+			{
+				if (EI_Forward_Hold == Hold)
+				{
+					if (ActionComp->StartActionByName("SlidingShovel", this)) return true;
+				}
+				if (EI_Back_Hold == Hold)
+				{
+					if (ActionComp->StartActionByName("EagleKick_Up", this)) return true;
+				}
+				if (ActionComp->bRightBranchFlag)
+				{
+					if (ActionComp->StartActionByName("BowAttack_B", this, MoveForwardVal || MoveRightVal, Arg)) return true;
+				}
+				else
+				{
+					if (ActionComp->StartActionByName("BowAttack", this, MoveForwardVal || MoveRightVal, Arg)) return true;
+				}
+			}
+		}
+		else
 		{
 			if (EI_LMouse_Press == Tail)
 			{
-
+				if (ActionComp->bLeftBranchFlag)
+				{
+					if (ActionComp->StartActionByName("BowAttack_B_2", this, MoveForwardVal || MoveRightVal, Arg)) return true;
+				}
+				if (ActionComp->StartActionByName("S1_AirNormalAttack", this, MoveForwardVal || MoveRightVal, Arg)) return true;
 			}
 			else if (EI_RMouse_Press == Tail)
 			{
@@ -334,46 +214,16 @@ bool AFSFischl::StartActionByInstruction(InstructionSeq& Seq, EInstruction_Hold 
 				{
 					if (ActionComp->StartActionByName("EagleKick_Up", this)) return true;
 				}
-			}
-		}
-		else
-		{
-			if (EI_LMouse_Press == Tail)
-			{
-				if (EI_Forward_Hold == Hold)
-				{
-					if (ActionComp->StartActionByName("WindChasingArrow", this)) return true;
-				}
-				if (EI_Back_Hold == Hold)
-				{
-					if (ActionComp->StartActionByName("ArrowFan", this)) return true;
-				}
-				if (ActionComp->StartActionByName("NormalAttack", this, false, Arg)) return true;
-			}
-			else if(EI_RMouse_Press == Tail)
-			{
-				if (EI_Back_Hold == Hold)
-				{
-					if (ActionComp->StartActionByName("EagleKick_Up", this)) return true;
-				}
-				if (ActionComp->StartActionByName("BowAttack", this, false, Arg)) return true;
+				if (ActionComp->StartActionByName("AirBowAttack", this)) return true;
 			}
 		}
 		break;
 	case EM_Thunder:
-		if (GetMovementComponent()->IsFalling())
-		{
-			if (EI_LMouse_Press == Tail)
-			{
-
-			}
-		}
-		else
+		if (GetMovementComponent()->IsMovingOnGround())
 		{
 			if (EI_RMouse_Press == Tail)
 			{
-				if (EI_Back == Seq.LookBackValidIns(GetWorld()->TimeSeconds, 2) &&
-					EI_Forward == Seq.LookBackValidIns(GetWorld()->TimeSeconds))
+				if (EI_BackForward == Seq)
 				{
 					if (ActionComp->StartActionByName("ThunderingJudgement", this)) return true;
 				}
@@ -385,6 +235,13 @@ bool AFSFischl::StartActionByInstruction(InstructionSeq& Seq, EInstruction_Hold 
 				{
 					if (ActionComp->StartActionByName("ThunderingRetributionFar", this)) return true;
 				}
+			}
+		}
+		else
+		{
+			if (EI_LMouse_Press == Tail)
+			{
+				if (ActionComp->StartActionByName("AirNormalAttack", this, MoveForwardVal || MoveRightVal, Arg)) return true;
 			}
 		}
 		break;
@@ -399,6 +256,36 @@ bool AFSFischl::StartActionByInstruction(InstructionSeq& Seq, EInstruction_Hold 
 	return false;
 }
 
+void AFSFischl::StartNextInstruction()
+{
+	if (GetWorld()->TimeSeconds - NextInstructionTime <= 0.4)
+	{
+		StartActionByInstruction(NextInstruction);
+	}
+	NextInstructionTime = 0.f;
+}
+
+void AFSFischl::OnLMouseHolding07()
+{
+
+}
+
+void AFSFischl::OnRMouseHolding07()
+{
+	UNiagaraFunctionLibrary::SpawnSystemAttached(FXBlackCharge, GetMesh(), "LeftLegEndSocket", FVector(0.f, 20.f, 0.f), FRotator(), EAttachLocation::SnapToTargetIncludingScale, true);
+}
+
+// Called when the game starts or when spawned
+void AFSFischl::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+void AFSFischl::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+}
+
 void AFSFischl::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
@@ -409,189 +296,6 @@ void AFSFischl::Landed(const FHitResult& Hit)
 bool AFSFischl::SetOrientToMovement(bool bVal)
 {
 	return GetCharacterMovement()->bOrientRotationToMovement = bVal && !bIsLocked || bVal && bIsSprinting;
-}
-
-void AFSFischl::ShootArrow()
-{
-	if (ensure(ProjectileClass))
-	{
-		FVector Location = GetMesh()->GetSocketLocation("WeaponSocket");
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnParams.Instigator = this;
-
-		FRotator Rot;
-		if (bIsLocked && LockedActor)
-		{
-			Rot = UKismetMathLibrary::FindLookAtRotation(Location, LockedActor->GetActorLocation());
-
-		}
-		else
-		{
-			Rot = GetActorRotation();
-		}
-
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ShootVFX, Location, Rot, FVector(1.f), true, true, ENCPoolMethod::None, true);
-
-		FTransform SpawnTM = FTransform(Rot, Location);
-		GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
-	}
-}
-
-void AFSFischl::F_Press()
-{
-
-}
-
-void AFSFischl::R_Press()
-{
-
-}
-
-void AFSFischl::Q_Press()
-{
-	if (bIsLocked && LockedActor)
-	{
-		SwitchTarget(false);
-	}
-}
-
-void AFSFischl::E_Press()
-{
-	if (bIsLocked && LockedActor)
-	{
-		SwitchTarget(true);
-	}
-}
-
-void AFSFischl::Shift_Press()
-{
-	bIsSprinting = true;
-
-	if (MilitantStyle == EM_Wings)
-	{
-
-	}
-	else
-	{
-		TArray<AActor*> Arr;
-		StepComp->GetOverlappingActors(Arr, AActor::StaticClass());
-
-		//One of them is root component
-		if (Arr.Num() >= 2)
-		{
-			ActionComp->StartActionByName("StepDodge", this, true, GetInsDir());
-		}
-		else if(!GetCharacterMovement()->IsFalling())
-		{
-			ActionComp->StartActionByName("Dodge", this, true, GetInsDir());
-		}
-	}
-
-	GetCharacterMovement()->MaxWalkSpeed = RUN_SPEED;
-}
-
-void AFSFischl::Shift_Release()
-{
-	bIsSprinting = false;
-
-	if(bIsLocked)
-		GetCharacterMovement()->MaxWalkSpeed = LOCKED_SPEED;
-	else
-		GetCharacterMovement()->MaxWalkSpeed = WALK_SPEED;
-
-	//冲刺结束时如果是锁定方向状态，则更改锁定方向为当前方向
-	LockedRot = GetActorRotation();
-
-	SetOrientToMovement(nullptr == ActionComp->CurrentAction);
-}
-
-void AFSFischl::Space_Press()
-{
-	StartActionByInstruction(InsSeq, GetInsHold(), EI_Space_Press, GetInsDir());
-}
-
-void AFSFischl::Left_Press()
-{
-	StartActionByInstruction(InsSeq, GetInsHold(), EI_LMouse_Press, GetInsDir());
-}
-
-void AFSFischl::Left_Release()
-{
-	StartActionByInstruction(InsSeq, GetInsHold(), EI_LMouse_Release);
-}
-
-void AFSFischl::Right_Press()
-{
-	StartActionByInstruction(InsSeq, GetInsHold(), EI_RMouse_Press, GetInsDir());
-}
-
-void AFSFischl::Right_Release()
-{
-	StartActionByInstruction(InsSeq, GetInsHold(), EI_RMouse_Release);
-}
-
-void AFSFischl::Middle_Press()
-{
-	ToggleLock();
-
-	if (!bIsSprinting)
-	{
-		if (bIsLocked)
-		{
-			GetCharacterMovement()->MaxWalkSpeed = LOCKED_SPEED;
-		}
-		else
-		{
-			GetCharacterMovement()->MaxWalkSpeed = WALK_SPEED;
-		}
-	}
-}
-
-void AFSFischl::Middle_Release()
-{
-
-}
-
-void AFSFischl::Key1_Press()
-{
-	if(MilitantStyle) GetWeaponByStyle(MilitantStyle)->SetVisibility(false);
-	MilitantStyle = EM_BowFight;
-	GetWeaponByStyle(MilitantStyle)->SetVisibility(true);
-}
-
-void AFSFischl::Key2_Press()
-{
-	if (MilitantStyle) GetWeaponByStyle(MilitantStyle)->SetVisibility(false);
-	MilitantStyle = EM_Thunder;
-	GetWeaponByStyle(MilitantStyle)->SetVisibility(true);
-}
-
-void AFSFischl::Key3_Press()
-{
-	if (MilitantStyle) GetWeaponByStyle(MilitantStyle)->SetVisibility(false);
-	MilitantStyle = EM_Collaborate;
-	GetWeaponByStyle(MilitantStyle)->SetVisibility(true);
-}
-
-void AFSFischl::Key4_Press()
-{
-	if (MilitantStyle) GetWeaponByStyle(MilitantStyle)->SetVisibility(false);
-	MilitantStyle = EM_Wings;
-	GetWeaponByStyle(MilitantStyle)->SetVisibility(true);
-}
-
-void AFSFischl::ScrollUp()
-{
-	if (Camera->ScrollScale > 0.4f)
-		Camera->ScrollScale -= 0.15f;
-}
-
-void AFSFischl::ScrollDown()
-{
-	if (Camera->ScrollScale < 1.6f)
-		Camera->ScrollScale += 0.15f;
 }
 
 void AFSFischl::ToggleLock()
@@ -632,7 +336,7 @@ void AFSFischl::ToggleLock()
 
 		if (!NearestActor)
 		{
-			LockedRot = FRotator(0.f, GetInsDir(), 0.f);
+			LockedRot = FRotator(0.f, GetActorRotation().Yaw, 0.f);
 		}
 	}
 }
@@ -738,44 +442,3 @@ void AFSFischl::Tick(float DeltaTime)
 		}
 	}
 }
-
-// Called to bind functionality to input
-void AFSFischl::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	PlayerInputComponent->BindAxis("MoveForward", this, &AFSFischl::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &AFSFischl::MoveRight);
-
-	PlayerInputComponent->BindAxis("LookYaw", this, &AFSFischl::LookYaw);
-	PlayerInputComponent->BindAxis("LookPitch", this, &AFSFischl::LookPitch);
-
-	PlayerInputComponent->BindAction("W_Key", IE_Pressed, this, &AFSFischl::W_Press);
-	PlayerInputComponent->BindAction("S_Key", IE_Pressed, this, &AFSFischl::S_Press);
-	PlayerInputComponent->BindAction("A_Key", IE_Pressed, this, &AFSFischl::A_Press);
-	PlayerInputComponent->BindAction("D_Key", IE_Pressed, this, &AFSFischl::D_Press);
-	PlayerInputComponent->BindAction("F_Key", IE_Pressed, this, &AFSFischl::S_Press);
-	PlayerInputComponent->BindAction("R_Key", IE_Pressed, this, &AFSFischl::R_Press);
-	PlayerInputComponent->BindAction("Q_Key", IE_Pressed, this, &AFSFischl::Q_Press);
-	PlayerInputComponent->BindAction("E_Key", IE_Pressed, this, &AFSFischl::E_Press);
-
-	PlayerInputComponent->BindAction("Space_Key", IE_Pressed, this, &AFSFischl::Space_Press);
-	PlayerInputComponent->BindAction("Shift_Key", IE_Pressed, this, &AFSFischl::Shift_Press);
-	PlayerInputComponent->BindAction("Shift_Key", IE_Released, this, &AFSFischl::Shift_Release);
-
-	PlayerInputComponent->BindAction("LeftMouseButton", IE_Pressed, this, &AFSFischl::Left_Press);
-	PlayerInputComponent->BindAction("LeftMouseButton", IE_Released, this, &AFSFischl::Left_Release);
-	PlayerInputComponent->BindAction("RightMouseButton", IE_Pressed, this, &AFSFischl::Right_Press);
-	PlayerInputComponent->BindAction("RightMouseButton", IE_Released, this, &AFSFischl::Right_Release);
-	PlayerInputComponent->BindAction("MiddleMouseButton", IE_Pressed, this, &AFSFischl::Middle_Press);
-	PlayerInputComponent->BindAction("MiddleMouseButton", IE_Released, this, &AFSFischl::Middle_Release);
-
-	PlayerInputComponent->BindAction("ScrollUp", IE_Pressed, this, &AFSFischl::ScrollUp);
-	PlayerInputComponent->BindAction("ScrollDown", IE_Pressed, this, &AFSFischl::ScrollDown);
-
-	PlayerInputComponent->BindAction("1_Key", IE_Pressed, this, &AFSFischl::Key1_Press);
-	PlayerInputComponent->BindAction("2_Key", IE_Pressed, this, &AFSFischl::Key2_Press);
-	PlayerInputComponent->BindAction("3_Key", IE_Pressed, this, &AFSFischl::Key3_Press);
-	PlayerInputComponent->BindAction("4_Key", IE_Pressed, this, &AFSFischl::Key4_Press);
-}
-

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Typedef.h"
+#include "Engine/DataTable.h"
 #include "FSFunctionLibrary.generated.h"
 
 class USoundBase;
@@ -12,10 +13,10 @@ class UNiagaraSystem;
 class UNiagaraComponent;
 class AFSCharacter;
 
-USTRUCT(Blueprintable)
-struct FDamageParam
+USTRUCT(BlueprintType)
+struct FDamageParam : public FTableRowBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 

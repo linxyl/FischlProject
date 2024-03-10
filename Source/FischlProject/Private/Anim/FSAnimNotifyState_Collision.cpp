@@ -1,11 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "FSAnimNotifyState_Collision.h"
+#include "Anim/FSAnimNotifyState_Collision.h"
 #include "FSFunctionLibrary.h"
 #include "Actor/FSCharacter.h"
 #include "Component/FSActionComponent.h"
 #include "Action/FSAction.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/DataTable.h"
 
 UFSAnimNotifyState_Collision::UFSAnimNotifyState_Collision()
 {
@@ -24,6 +26,15 @@ void UFSAnimNotifyState_Collision::NotifyBegin(USkeletalMeshComponent* MeshComp,
 		}
 	}
 
+	if (DataTable)
+	{
+		uint8* const* RowDataPtr = DataTable->GetRowMap().Find(RowName);
+		if (RowDataPtr)
+		{
+			DamageParam = reinterpret_cast<FDamageParam*>(*RowDataPtr);
+		}
+	}
+
 	OnceFlag = false;
 
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration);
@@ -36,8 +47,11 @@ void UFSAnimNotifyState_Collision::NotifyTick(USkeletalMeshComponent* MeshComp, 
 		return;
 	}
 
-	FVector PosStart = MeshComp->GetSocketLocation(SocketStart);
-	FVector PosEnd = MeshComp->GetSocketLocation(SocketEnd);
+	FVector SockLoc = MeshComp->GetSocketLocation(Socket);
+	FRotator SocketRot = MeshComp->GetSocketRotation(Socket);
+
+	FVector PosStart = SockLoc + SocketRot.RotateVector(OffsetStart);
+	FVector PosEnd = SockLoc + SocketRot.RotateVector(OffsetEnd);
 
 	Instigator->GetWorld()->SweepMultiByProfile(
 		AllResults,
@@ -53,7 +67,7 @@ void UFSAnimNotifyState_Collision::NotifyTick(USkeletalMeshComponent* MeshComp, 
 	{
 		if (Res.Actor != Instigator)
 		{
-			UFSFunctionLibrary::ApplyFuncDamage(Instigator, Res.Actor.Get(), Action->DamagedActors, Res.ImpactPoint, Action->DamageParam);
+			UFSFunctionLibrary::ApplyFuncDamage(Instigator, Res.Actor.Get(), Action->DamagedActors, Res.ImpactPoint, *DamageParam);
 			Action->CustomEvent(Instigator, Cast<AFSCharacter>(Res.Actor.Get()), 0.f);
 
 			if (bOnce)
@@ -62,5 +76,13 @@ void UFSAnimNotifyState_Collision::NotifyTick(USkeletalMeshComponent* MeshComp, 
 				return;
 			}
 		}
+	}
+}
+
+void UFSAnimNotifyState_Collision::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+{
+	if (Action)
+	{
+		Action->DamagedActors.Empty();
 	}
 }

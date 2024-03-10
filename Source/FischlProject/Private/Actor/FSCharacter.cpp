@@ -2,16 +2,19 @@
 
 
 #include "Actor/FSCharacter.h"
-#include "Component/FSAttributeComponent.h"
-#include "Component/FSActionComponent.h"
+
+#include "Components/CapsuleComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
-#include "FSFunctionLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
+
+#include "Component/FSAttributeComponent.h"
+#include "Component/FSActionComponent.h"
+#include "FSFunctionLibrary.h"
 #include "Typedef.h"
 #include "Component/FSWeaponComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Component/FSShootComponent.h"
 
 // Sets default values
 AFSCharacter::AFSCharacter()
@@ -28,6 +31,9 @@ AFSCharacter::AFSCharacter()
 
 	// Init action component
 	ActionComp = CreateDefaultSubobject<UFSActionComponent>("ActionComp");
+
+	// Init shoot component
+	ShootComp = CreateDefaultSubobject<UFSShootComponent>("ShootComp");
 
 	// Set Effect
 	UObject* loadVFXObj = StaticLoadObject(UNiagaraSystem::StaticClass(), NULL, TEXT("NiagaraSystem'/Game/Effects/FX_HunmanInjured.FX_HunmanInjured'"));
@@ -92,9 +98,13 @@ void AFSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (GetCharacterMovement()->IsFalling() && GetCharacterMovement()->GravityScale < FAST_GRAVITY)
+	if (GetCharacterMovement()->IsFlying())
 	{
-		GetCharacterMovement()->GravityScale += DeltaTime / 15;
+		GetCharacterMovement()->GravityScale = 0.f;
+	}
+	else if (!GetCharacterMovement()->IsMovingOnGround() && GetCharacterMovement()->GravityScale < FAST_GRAVITY)
+	{
+		GetCharacterMovement()->GravityScale += DeltaTime * 0.5;
 	}
 
 	//防止跳跃时撞到墙而使水平速度消失

@@ -9,6 +9,9 @@
 class AFSProjectileBase;
 class UNiagaraSystem;
 
+/**
+ * Used to execute shoot.
+ */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FISCHLPROJECT_API UFSShootComponent : public UActorComponent
 {
@@ -19,32 +22,56 @@ public:
 	UFSShootComponent();
 
 protected:
+	/** All projectile classes */
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AFSProjectileBase> ProjectileClass;
+	TArray<TSubclassOf<AFSProjectileBase>> ProjectileClass;
 
+	/** Socket name of the socket that spawn projectile */
 	UPROPERTY(EditDefaultsOnly)
 	FName SocketName;
 
-	UPROPERTY(EditDefaultsOnly)
-	UNiagaraSystem* ShootVFX;
+	/** Played when shooting */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Property")
+	USoundBase* Sound;
 
 public:
+	/**
+	 * An interface of shooting.
+	 * 
+	 * @param ShootProjectileClass	Class to be shoot. If it is TSubclassOf<AFSProjectileBase>(), use default class.
+	 * @param TempSerialNumber		Number of shooting. If it is -1, then use default SerialNumber.
+	 */
 	UFUNCTION(BlueprintCallable)
-	void Shoot();
+	void Shoot(TSubclassOf<AFSProjectileBase> ShootProjectileClass, int32 TempSerialNumber = -1);
+
+	/** Select which projectile class to use. */
+	FORCEINLINE void SelectProjectile(int32 Sel) { ProjectileSelect = Sel; }
 
 public:
-	uint32 SerialNumber;
+	/** Number of serial shoot */
+	int32 SerialNumber;
 
-	uint32 ParallelNumber;
-
+	/** The interval between two shoot. */
 	float Interval;
 
+	/** Number of parallel shoot */
+	int32 ParallelNumber;
+
+	/** Angle of parallel shooting */
 	float IncludedAngle;
 
 protected:
-	void OnceShoot();
+	/** Implement of shoot. */
+	UFUNCTION(BlueprintNativeEvent)
+	void ExecShoot(TSubclassOf<AFSProjectileBase> ShootProjectileClass);
 
-	uint32 LeftSerialNum;
+private:
+	/** Index of projectile class */
+	int32 ProjectileSelect;
 
+	/** The number remaining to be shoot */
+	int32 LeftSerialNum;
+
+	/** Timer for serial shoot */
 	FTimerHandle TimerHandle;
 };

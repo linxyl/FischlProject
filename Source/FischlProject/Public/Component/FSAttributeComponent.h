@@ -13,11 +13,9 @@ class FISCHLPROJECT_API UFSAttributeComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-
 	UFSAttributeComponent();
 
 protected:
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
 	float Health;
 
@@ -37,7 +35,6 @@ protected:
 	float AttentionMax;
 
 public:
-
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetMaxVal(float HPMax, float MPMax, float APMax);
 };

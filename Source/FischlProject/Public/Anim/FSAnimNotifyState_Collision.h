@@ -12,7 +12,7 @@ class UFSAction;
 class UDataTable;
 
 /**
- * 
+ * Used for collision detection
  */
 UCLASS()
 class FISCHLPROJECT_API UFSAnimNotifyState_Collision : public UAnimNotify_PlayMontageNotifyWindow
@@ -22,45 +22,56 @@ class FISCHLPROJECT_API UFSAnimNotifyState_Collision : public UAnimNotify_PlayMo
 public:
 	UFSAnimNotifyState_Collision();
 
+protected:
+	/** Socket name of the collision detection location */
 	UPROPERTY(EditAnywhere)
 	FName Socket;
 
+	/** The start position offset of capsule collision */
 	UPROPERTY(EditAnywhere)
 	FVector OffsetStart;
 
+	/** The end position offset of capsule collision */
 	UPROPERTY(EditAnywhere)
 	FVector OffsetEnd;
 
-	UPROPERTY(EditAnywhere)
-	FName ActionName;
-
-	UPROPERTY(EditAnywhere)
-	FName CollisionProfile;
-
+	/** The radius of the capsule collision */
 	UPROPERTY(EditAnywhere)
 	float CollisionRadius;
 
+	/** The owner action name */
+	UPROPERTY(EditAnywhere)
+	FName ActionName;
+
+	/** The profile name of the collision */
+	UPROPERTY(EditAnywhere)
+	FName CollisionProfile;
+
+	/** Whether to detect only one collision and end */
 	UPROPERTY(EditAnywhere)
 	bool bOnce;
 
+	/** Table of damage parameters to reference for colliding actor */
 	UPROPERTY(EditAnywhere)
 	UDataTable* DataTable;
 
+	/** Row name of the variable DataTable */
 	UPROPERTY(EditAnywhere)
 	FName RowName;
 
 private:
-	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
-	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
-	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
-
 	AFSCharacter* Instigator;
 
 	UFSAction* Action;
 
-	TArray<FHitResult> AllResults;
-
 	bool OnceFlag;
 
 	FDamageParam* DamageParam;
+
+private:
+	//~ Begin UAnimNotifyState Interface.
+	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
+	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
+	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+	//~ End UAnimNotifyState Interface.
 };

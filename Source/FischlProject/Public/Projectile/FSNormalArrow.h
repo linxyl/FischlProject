@@ -13,8 +13,4 @@ UCLASS()
 class FISCHLPROJECT_API AFSNormalArrow : public AFSProjectileBase
 {
 	GENERATED_BODY()
-	
-public:
-
-	AFSNormalArrow();
 };

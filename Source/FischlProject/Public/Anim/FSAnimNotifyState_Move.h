@@ -9,7 +9,7 @@
 class AFSCharacter;
 
 /**
- * 
+ * Keep the character moving
  */
 UCLASS()
 class FISCHLPROJECT_API UFSAnimNotifyState_Move : public UAnimNotify_PlayMontageNotifyWindow
@@ -19,16 +19,25 @@ class FISCHLPROJECT_API UFSAnimNotifyState_Move : public UAnimNotify_PlayMontage
 public:
 	UFSAnimNotifyState_Move();
 
-private:
-	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
-	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
-	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
-
+protected:
+	/** Horizontal component velocity */
 	UPROPERTY(EditAnywhere)
 	float ForwardVelocity;
 
+	/** Vertical component velocity */
 	UPROPERTY(EditAnywhere)
 	float UpVelocity;
 
+	/** Whether clear velocity when end */
+	UPROPERTY(EditAnywhere)
+	bool bStopMoveWhenEnd;
+
+	/** Moving character */
 	AFSCharacter* Instigator;
+
+private:
+	//~ Begin UAnimNotifyState Interface.
+	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
+	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
+	//~ End UAnimNotifyState Interface.
 };

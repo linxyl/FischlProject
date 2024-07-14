@@ -16,12 +16,12 @@
 
 AFSPlayerController::AFSPlayerController():
 	Super(),
-	LMouseHoldingTime(-1.f),
-	RMouseHoldingTime(-1.f)
+	LeftMouseHoldingTime(-1.f),
+	RightMouseHoldingTime(-1.f)
 {
 }
 
-EInstruction_Key AFSPlayerController::GetInsKey(const FRotator& Rot)
+EInstructionKey AFSPlayerController::GetInsKey(const FRotator& Rot)
 {
 	if (PlayerCharacter->LockedActor)
 	{
@@ -31,27 +31,27 @@ EInstruction_Key AFSPlayerController::GetInsKey(const FRotator& Rot)
 
 	if (-45.0f <= DelRot.Yaw && DelRot.Yaw <= 45.0f)
 	{
-		return EI_Forward;
+		return InstructionKey_Forward;
 	}
 	else if (45.0f < DelRot.Yaw && DelRot.Yaw < 135.0f)
 	{
-		return EI_Left;
+		return InstructionKey_Left;
 	}
 	else if (-45.0f > DelRot.Yaw && DelRot.Yaw > -135.0f)
 	{
-		return EI_Right;
+		return InstructionKey_Right;
 	}
 	else
 	{
-		return EI_Back;
+		return InstructionKey_Back;
 	}
 }
 
-EInstruction_Hold AFSPlayerController::GetInsHold()
+EInstructionHold AFSPlayerController::GetInsHold()
 {
 	if (!PlayerCharacter->bIsLocked || (abs(PlayerCharacter->MoveForwardVal) <= KINDA_SMALL_NUMBER && abs(PlayerCharacter->MoveRightVal) <= KINDA_SMALL_NUMBER))
 	{
-		return EI_None;
+		return InstructionHold_None;
 	}
 
 	if (PlayerCharacter->LockedActor)
@@ -66,30 +66,20 @@ EInstruction_Hold AFSPlayerController::GetInsHold()
 
 	if (-45.0f <= DelRot.Yaw && DelRot.Yaw <= 45.0f)
 	{
-		return EI_Forward_Hold;
+		return InstructionHold_Forward;
 	}
 	else if (45.0f < DelRot.Yaw && DelRot.Yaw < 135.0f)
 	{
-		return EI_Left_Hold;
+		return InstructionHold_Left;
 	}
 	else if (-45.0f > DelRot.Yaw && DelRot.Yaw > -135.0f)
 	{
-		return EI_Right_Hold;
+		return InstructionHold_Right;
 	}
 	else
 	{
-		return EI_Back_Hold;
+		return InstructionHold_Back;
 	}
-}
-
-float AFSPlayerController::GetInsDir()
-{
-	float CtrlDir = GetControlRotation().Yaw;
-
-	if (PlayerCharacter->MoveForwardVal || PlayerCharacter->MoveRightVal)
-		return CtrlDir + FVector(PlayerCharacter->MoveForwardVal, PlayerCharacter->MoveRightVal, 0.0f).Rotation().Yaw;
-	else
-		return PlayerCharacter->GetActorRotation().Yaw;
 }
 
 void AFSPlayerController::SetupInputComponent()
@@ -142,24 +132,24 @@ void AFSPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
-	if (LMouseHoldingTime >= 0.f)
+	if (LeftMouseHoldingTime >= 0.f)
 	{
-		LMouseHoldingTime += DeltaTime;
+		LeftMouseHoldingTime += DeltaTime;
 
-		if (LMouseHoldingTime >= 0.7)
+		if (LeftMouseHoldingTime >= 0.55)
 		{
-			LMouseHoldingTime = -1.f;
-			PlayerCharacter->OnLMouseHolding07();
+			LeftMouseHoldingTime = -1.f;
+			PlayerCharacter->OnLMouseHolding();
 		}
 	}
 
-	if (RMouseHoldingTime >= 0.f)
+	if (RightMouseHoldingTime >= 0.f)
 	{
-		RMouseHoldingTime += DeltaTime;
+		RightMouseHoldingTime += DeltaTime;
 
-		if (RMouseHoldingTime >= 0.7)
+		if (RightMouseHoldingTime >= 0.7)
 		{
-			RMouseHoldingTime = -1.f;
+			RightMouseHoldingTime = -1.f;
 			PlayerCharacter->OnRMouseHolding07();
 		}
 	}
@@ -169,7 +159,7 @@ void AFSPlayerController::MoveForward(float Value)
 {
 	PlayerCharacter->MoveForwardVal = Value;
 
-	if (nullptr == PlayerCharacter->ActionComp->CurrentAction)
+	if (nullptr == PlayerCharacter->GetActionComp()->GetCurrentAction())
 	{
 		if (Value != 0.f)
 			PlayerCharacter->StopAnimMontage();
@@ -180,7 +170,8 @@ void AFSPlayerController::MoveForward(float Value)
 
 		PlayerCharacter->AddMovementInput(ControlRot.Vector(), Value);
 	}
-	else if (PlayerCharacter->ActionComp->CurrentAction->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted")))
+	else if (PlayerCharacter->GetActionComp()->GetCurrentAction()->GetActionTags().HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted"))
+		&& PlayerCharacter->GetActionComp()->GetCurrentAction()->GetActionName() != "Dodge")
 	{
 		FRotator ControlRot = GetControlRotation();
 		ControlRot.Pitch = 0.0f;
@@ -194,7 +185,7 @@ void AFSPlayerController::MoveRight(float Value)
 {
 	PlayerCharacter->MoveRightVal = Value;
 
-	if (nullptr == PlayerCharacter->ActionComp->CurrentAction)
+	if (nullptr == PlayerCharacter->GetActionComp()->GetCurrentAction())
 	{
 		if (Value != 0.f)
 			PlayerCharacter->StopAnimMontage();
@@ -207,7 +198,8 @@ void AFSPlayerController::MoveRight(float Value)
 
 		PlayerCharacter->AddMovementInput(RightVector, Value);
 	}
-	else if (PlayerCharacter->ActionComp->CurrentAction->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted")))
+	else if (PlayerCharacter->GetActionComp()->GetCurrentAction()->GetActionTags().HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted"))
+		&& PlayerCharacter->GetActionComp()->GetCurrentAction()->GetActionName() != "Dodge")
 	{
 		FRotator ControlRot = GetControlRotation();
 		ControlRot.Pitch = 0.0f;
@@ -303,8 +295,7 @@ void AFSPlayerController::Shift_Press()
 	PlayerCharacter->GetCharacterMovement()->MaxWalkSpeed = RUN_SPEED;
 
 	FInstruction Instruction;
-	Instruction.Tail = EI_Shift_Press;
-	Instruction.Arg = GetInsDir();
+	Instruction.Tail = InstructionTail_Shift_Press;
 	PlayerCharacter->TryImplementInstruction(Instruction);
 }
 
@@ -318,9 +309,12 @@ void AFSPlayerController::Shift_Release()
 		PlayerCharacter->GetCharacterMovement()->MaxWalkSpeed = WALK_SPEED;
 
 	//冲刺结束时如果是锁定方向状态，则更改锁定方向为当前方向
-	PlayerCharacter->LockedRot = PlayerCharacter->GetActorRotation();
+	if (!PlayerCharacter->LockedActor)
+	{
+		PlayerCharacter->LockedRot = PlayerCharacter->GetActorRotation();
+	}
 
-	PlayerCharacter->SetOrientToMovement(nullptr == PlayerCharacter->ActionComp->CurrentAction);
+	PlayerCharacter->UpdateOrientToMovement(nullptr == PlayerCharacter->GetActionComp()->GetCurrentAction());
 }
 
 void AFSPlayerController::Space_Press()
@@ -328,8 +322,7 @@ void AFSPlayerController::Space_Press()
 	FInstruction Instruction;
 	Instruction.Seq = InsSeq.GetSeq(GetWorld()->TimeSeconds);
 	Instruction.Hold = GetInsHold();
-	Instruction.Tail = EI_Space_Press;
-	Instruction.Arg = GetInsDir();
+	Instruction.Tail = InstructionTail_Space_Press;
 	PlayerCharacter->TryImplementInstruction(Instruction);
 }
 
@@ -338,25 +331,23 @@ void AFSPlayerController::Left_Press()
 	FInstruction Instruction;
 	Instruction.Seq = InsSeq.GetSeq(GetWorld()->TimeSeconds);
 	Instruction.Hold = GetInsHold();
-	Instruction.Tail = EI_LMouse_Press;
-	Instruction.Arg = GetInsDir();
+	Instruction.Tail = InstructionTail_LeftMouse_Press;
 	PlayerCharacter->TryImplementInstruction(Instruction);
 
-	LMouseHoldingTime = 0.f;
+	LeftMouseHoldingTime = 0.f;
 }
 
 void AFSPlayerController::Left_Release()
 {
-	if (-1.f == LMouseHoldingTime)
+	if (-1.f == LeftMouseHoldingTime)
 	{
 		FInstruction Instruction;
 		Instruction.Seq = InsSeq.GetSeq(GetWorld()->TimeSeconds);
 		Instruction.Hold = GetInsHold();
-		Instruction.Tail = EI_LMouse_Holding07;
-		Instruction.Arg = GetInsDir();
+		Instruction.Tail = InstructionTail_LeftMouse_Release;
 		PlayerCharacter->TryImplementInstruction(Instruction);
 	}
-	LMouseHoldingTime = -1.f;
+	LeftMouseHoldingTime = -1.f;
 }
 
 void AFSPlayerController::Right_Press()
@@ -364,25 +355,23 @@ void AFSPlayerController::Right_Press()
 	FInstruction Instruction;
 	Instruction.Seq = InsSeq.GetSeq(GetWorld()->TimeSeconds);
 	Instruction.Hold = GetInsHold();
-	Instruction.Tail = EI_RMouse_Press;
-	Instruction.Arg = GetInsDir();
+	Instruction.Tail = InstructionTail_RightMouse_Press;
 	PlayerCharacter->TryImplementInstruction(Instruction);
 
-	RMouseHoldingTime = 0.f;
+	RightMouseHoldingTime = 0.f;
 }
 
 void AFSPlayerController::Right_Release()
 {
-	if (-1.f == RMouseHoldingTime)
+	if (-1.f == RightMouseHoldingTime)
 	{
 		FInstruction Instruction;
 		Instruction.Seq = InsSeq.GetSeq(GetWorld()->TimeSeconds);
 		Instruction.Hold = GetInsHold();
-		Instruction.Tail = EI_RMouse_Holding07;
-		Instruction.Arg = GetInsDir();
+		Instruction.Tail = InstructionTail_RightMouse_Holding07;
 		PlayerCharacter->TryImplementInstruction(Instruction);
 	}
-	RMouseHoldingTime = -1.f;
+	RightMouseHoldingTime = -1.f;
 }
 
 void AFSPlayerController::Middle_Press()
@@ -409,48 +398,32 @@ void AFSPlayerController::Middle_Release()
 
 void AFSPlayerController::Key1_Press()
 {
-	if (PlayerCharacter->MilitantStyle)
-		PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle)->SetVisibility(false);
-	PlayerCharacter->MilitantStyle = EM_BowFight;
-	PlayerCharacter->WeaponComponent = PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle);
-	PlayerCharacter->WeaponComponent->SetVisibility(true);
+	PlayerCharacter->ChangeStyle(MilitantStyle_BowFight);
 }
 
 void AFSPlayerController::Key2_Press()
 {
-	if (PlayerCharacter->MilitantStyle)
-		PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle)->SetVisibility(false);
-	PlayerCharacter->MilitantStyle = EM_Thunder;
-	PlayerCharacter->WeaponComponent = PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle);
-	PlayerCharacter->WeaponComponent->SetVisibility(true);
+	PlayerCharacter->ChangeStyle(MilitantStyle_Thunder);
 }
 
 void AFSPlayerController::Key3_Press()
 {
-	if (PlayerCharacter->MilitantStyle)
-		PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle)->SetVisibility(false);
-	PlayerCharacter->MilitantStyle = EM_Collaborate;
-	PlayerCharacter->WeaponComponent = PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle);
-	PlayerCharacter->WeaponComponent->SetVisibility(true);
+	PlayerCharacter->ChangeStyle(MilitantStyle_Collaborate);
 }
 
 void AFSPlayerController::Key4_Press()
 {
-	if (PlayerCharacter->MilitantStyle)
-		PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle)->SetVisibility(false);
-	PlayerCharacter->MilitantStyle = EM_Wings;
-	PlayerCharacter->WeaponComponent = PlayerCharacter->GetWeaponByStyle(PlayerCharacter->MilitantStyle);
-	PlayerCharacter->WeaponComponent->SetVisibility(true);
+	PlayerCharacter->ChangeStyle(MilitantStyle_Wings);
 }
 
 void AFSPlayerController::ScrollUp()
 {
-	if (PlayerCharacter->Camera->ScrollScale > 0.4f)
-		PlayerCharacter->Camera->ScrollScale -= 0.15f;
+	if (PlayerCharacter->CameraComp->ScrollScale > 0.4f)
+		PlayerCharacter->CameraComp->ScrollScale -= 0.15f;
 }
 
 void AFSPlayerController::ScrollDown()
 {
-	if (PlayerCharacter->Camera->ScrollScale < 1.6f)
-		PlayerCharacter->Camera->ScrollScale += 0.15f;
+	if (PlayerCharacter->CameraComp->ScrollScale < 1.6f)
+		PlayerCharacter->CameraComp->ScrollScale += 0.15f;
 }

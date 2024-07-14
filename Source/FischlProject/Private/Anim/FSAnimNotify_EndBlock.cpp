@@ -10,6 +10,6 @@ void UFSAnimNotify_EndBlock::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	AFSCharacter* Instigator = Cast<AFSCharacter>(MeshComp->GetOwner());
 	if (Instigator)
 	{
-		Instigator->ActionComp->EndBlock(Instigator);
+		Instigator->GetActionComp()->EndBlock(Instigator);
 	}
 }

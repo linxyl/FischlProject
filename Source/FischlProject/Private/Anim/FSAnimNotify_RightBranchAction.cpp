@@ -10,6 +10,6 @@ void UFSAnimNotify_RightBranchAction::Notify(USkeletalMeshComponent* MeshComp, U
 	AFSCharacter* Instigator = Cast<AFSCharacter>(MeshComp->GetOwner());
 	if (ensure(Instigator))
 	{
-		Instigator->ActionComp->SetRightBranchFlag(true);
+		Instigator->GetActionComp()->bRightBranchFlag = true;
 	}
 }

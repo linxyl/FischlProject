@@ -1,11 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Component/FSShootComponent.h"
-#include "Actor/FSCharacter.h"
+
 #include "Kismet/KismetMathLibrary.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "Actor/FSCharacter.h"
 #include "Projectile/FSProjectileBase.h"
+#include "Component/FSBuffComponent.h"
+#include "Actor/FSFischl.h"
+#include "Actor/FSOz.h"
 
 // Sets default values for this component's properties
 UFSShootComponent::UFSShootComponent():
@@ -22,15 +27,33 @@ UFSShootComponent::UFSShootComponent():
 }
 
 
-void UFSShootComponent::Shoot()
+void UFSShootComponent::Shoot(TSubclassOf<AFSProjectileBase> ShootProjectileClass, int32 TempSerialNumber)
 {
-	LeftSerialNum = SerialNumber;
-	GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle, this, &UFSShootComponent::OnceShoot, Interval, true, 0.f);
+	if (Cast<AFSCharacter>(GetOwner())->GetBuffComp()->FindAndUseBuff("TripleShoot"))
+	{
+		LeftSerialNum = 3;
+	}
+	else if (-1 == TempSerialNumber)
+	{
+		LeftSerialNum = SerialNumber;
+	}
+	else
+	{
+		LeftSerialNum = TempSerialNumber;
+	}
+
+	TSubclassOf<AFSProjectileBase> TempProjectileClass = 
+		ShootProjectileClass == TSubclassOf<AFSProjectileBase>() ? ProjectileClass[ProjectileSelect] : ShootProjectileClass;
+
+	FTimerDelegate Delegate;
+	Delegate.BindUFunction(this, "ExecShoot", TempProjectileClass);
+	GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle, Delegate, Interval, true, 0.f);
+	//GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle, this, &UFSShootComponent::ShootImpl, Interval, true, 0.f);
 }
 
-void UFSShootComponent::OnceShoot()
+void UFSShootComponent::ExecShoot_Implementation(TSubclassOf<AFSProjectileBase> ShootProjectileClass)
 {
-	if (ensure(ProjectileClass))
+	if (ensure(ProjectileClass.Num() > ProjectileSelect))
 	{
 		AFSCharacter* Instigator = Cast<AFSCharacter>(GetOwner());
 
@@ -42,7 +65,7 @@ void UFSShootComponent::OnceShoot()
 			Rot = Instigator->GetActorRotation();
 		Rot.Yaw += (ParallelNumber + 1) * IncludedAngle / 2;
 
-		for (uint32 i = 0; i < ParallelNumber; i++)
+		for (int32 i = 0; i < ParallelNumber; i++)
 		{
 			Rot.Yaw -= IncludedAngle;
 
@@ -50,14 +73,24 @@ void UFSShootComponent::OnceShoot()
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnParams.Instigator = Instigator;
 
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ShootVFX, Location, Rot, FVector(1.f), true, true, ENCPoolMethod::None, true);
-
 			FTransform SpawnTM = FTransform(Rot, Location);
-			GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
+			Cast<AFSProjectileBase>(GetWorld()->SpawnActor<AActor>(ShootProjectileClass, SpawnTM, SpawnParams));
+		}
+
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Location);
+
+		if (Cast<AFSCharacter>(GetOwner())->GetBuffComp()->FindBuff("Collaborate"))
+		{
+			if (AFSFischl* Fischl = Cast<AFSFischl>(GetOwner()))
+			{
+				Fischl->GetOz()->GetShootComp()->Shoot(TSubclassOf<AFSProjectileBase>());
+			}
 		}
 
 		if (0 == --LeftSerialNum)
 		{
+			//bFirstShoot = true;
+			//TempProjectileClass = TSubclassOf<AFSProjectileBase>();
 			GetOwner()->GetWorldTimerManager().ClearTimer(TimerHandle);
 		}
 	}

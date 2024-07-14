@@ -11,7 +11,7 @@ UFSAction_ComboBase::UFSAction_ComboBase()
 	Index = 0;
 }
 
-void UFSAction_ComboBase::StartAction_Implementation(AFSCharacter* Instigator, bool bHasArg /*= false*/, float Arg /*= 0.f*/)
+void UFSAction_ComboBase::StartAction_Implementation(AFSCharacter* Instigator)
 {
-	Super::StartAction_Implementation(Instigator, bHasArg, Arg);
+	Super::StartAction_Implementation(Instigator);
 }

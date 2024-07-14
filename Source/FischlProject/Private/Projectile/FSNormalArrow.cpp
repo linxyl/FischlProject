@@ -2,8 +2,3 @@
 
 
 #include "Projectile/FSNormalArrow.h"
-
-AFSNormalArrow::AFSNormalArrow()
-{
-
-}

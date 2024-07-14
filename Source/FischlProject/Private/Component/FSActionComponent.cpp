@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GameFramework/CharacterMovementComponent.h"
-
 #include "Component/FSActionComponent.h"
+
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Action/FSAction_ComboBase.h"
 #include "Actor/FSCharacter.h"
 #include "Actor/FSFischl.h"
@@ -29,7 +29,7 @@ UFSAction* UFSActionComponent::FindAction(FName ActionName)
 {
 	for (auto& Action : ActionsArr)
 	{
-		if (Action->ActionName == ActionName)
+		if (Action->GetActionName() == ActionName)
 		{
 			return Action;
 		}
@@ -51,24 +51,24 @@ void UFSActionComponent::AddAction(TSubclassOf<UFSAction> ActionClass)
 	}
 }
 
-bool UFSActionComponent::StartActionByName(FName ActionName, AFSCharacter* Instigator, bool bHasArg, float Arg)
+bool UFSActionComponent::StartActionByName(FName ActionName, AFSCharacter* Instigator)
 {
 	for (UFSAction* Action : ActionsArr)
 	{
-		if (Action && Action->ActionName == ActionName)
+		if (Action && Action->GetActionName() == ActionName)
 		{
-			if (GetWorld()->TimeSeconds - Action->LastTime < Action->Cooldown)
+			if (GetWorld()->TimeSeconds - Action->GetLastTime() < Action->GetCooldown())
 			{
 				return false;
 			}
 			
-			if (Action->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Release")))
+			if (Action->GetActionTags().HasTag(FGameplayTag::RequestGameplayTag("Action.Release")))
 			{
-				Action->StartAction(Instigator, bHasArg, Arg);
+				Action->StartAction(Instigator);
 			}
-			else if (bCanAct || (CurrentAction->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted")) && CurrentAction != Action))
+			else if (bCanAct || (CurrentAction->GetActionTags().HasTag(FGameplayTag::RequestGameplayTag("Action.Interrupted")) && CurrentAction != Action))
 			{
-				if (Action->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Combo")))
+				if (Action->GetActionTags().HasTag(FGameplayTag::RequestGameplayTag("Action.Combo")))
 				{
 					if (CurrentAction == Action)
 					{
@@ -84,15 +84,15 @@ bool UFSActionComponent::StartActionByName(FName ActionName, AFSCharacter* Insti
 				CurrentAction = Action;
 				SetCanAct(Instigator, false);
 
-				Action->StartAction(Instigator, bHasArg, Arg);
+				Action->StartAction(Instigator);
 			}
-			else if (Action->ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Force")))
+			else if (Action->GetActionTags().HasTag(FGameplayTag::RequestGameplayTag("Action.Force")))
 			{
 				StopCurrentAction(Instigator);
 				CurrentAction = Action;
 				SetCanAct(Instigator, false);
 
-				Action->StartAction(Instigator, bHasArg, Arg);
+				Action->StartAction(Instigator);
 			}
 			else
 			{
@@ -126,8 +126,8 @@ bool UFSActionComponent::StopCurrentAction(AFSCharacter* Instigator)
 	StopAction(CurrentAction, Instigator);
 	CurrentAction = nullptr;
 	SetCanAct(Instigator, true);
-	SetLeftBranchFlag(false);
-	SetRightBranchFlag(false);
+	bLeftBranchFlag = false;
+	bRightBranchFlag = false;
 
 	return true;
 }
@@ -145,7 +145,7 @@ void UFSActionComponent::SetCanAct(AFSCharacter* Instigator, bool b /*= true*/)
 {
 	bCanAct = b;
 
-	Instigator->SetOrientToMovement(b);
+	Instigator->UpdateOrientToMovement(b);
 }
 
 //void UFSActionComponent::StartNextAction(AFSCharacter* Instigator)

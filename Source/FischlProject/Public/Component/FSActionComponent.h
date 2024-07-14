@@ -9,26 +9,6 @@
 class UFSAction;
 class AFSCharacter;
 
-//USTRUCT(Blueprintable)
-//struct FNextAction
-//{
-//	GENERATED_BODY()
-//
-//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-//	FName ActionName;
-//
-//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-//	float Time;
-//
-//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-//	bool bHasArg;
-//
-//	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Action")
-//	float Arg;
-//};
-
-class UFSAction;
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FISCHLPROJECT_API UFSActionComponent : public UActorComponent
 {
@@ -38,68 +18,77 @@ public:
 	// Sets default values for this component's properties
 	UFSActionComponent();
 
+public:
+	/** Return the action by name. */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	UFSAction* FindAction(FName ActionName);
 
+	/** Add a new action by class. */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	void AddAction(TSubclassOf<UFSAction> ActionClass);
 
+	/**
+	 * Start an action by name.
+	 * 
+	 * @param ActionName	The name of action that to be started.
+	 * @param Instigator	The instigator of the action.
+	 * @return whether succeed to start action.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
-	bool StartActionByName(FName ActionName, AFSCharacter* Instigator, bool bHasArg = false, float Arg = 0.f);
+	bool StartActionByName(FName ActionName, AFSCharacter* Instigator);
 
+	/** Stop an action by name. */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	bool StopActionByName(FName ActionName, AFSCharacter* Instigator);
 
+	/** Stop an action. */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	bool StopAction(UFSAction* Action, AFSCharacter* Instigator);
 
+	/** Stop the current action. */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	bool StopCurrentAction(AFSCharacter* Instigator);
 
+	/** Get the current action. */
+	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "Actions")
+	FORCEINLINE UFSAction* GetCurrentAction() { return CurrentAction; }
+
+	/** Stop blocking action so that other actions can be started. */
 	UFUNCTION(BlueprintCallable, Category = "Actions")
 	void EndBlock(AFSCharacter* Instigator);
 
-	void SetLeftBranchFlag(bool bFlag)
-	{
-		bLeftBranchFlag = bFlag;
-	}
-
-	void SetRightBranchFlag(bool bFlag)
-	{
-		bRightBranchFlag = bFlag;
-	}
-
-	UPROPERTY(BlueprintReadWrite, Category = "Actions")
-	bool bCanAct;
-
-	UFSAction* CurrentAction;
-
 protected:
-
-	void SetCanAct(AFSCharacter* Instigator, bool b = true);
-
-	//void StartNextAction(AFSCharacter* Instigator);
-
+	/** Actions owned default */
 	UPROPERTY(EditAnywhere, Category = "Actions")
 	TArray<TSubclassOf<UFSAction>> DefaultActions;
 
+	/** All actions owned current */
 	UPROPERTY(BlueprintReadOnly)
 	TArray<UFSAction*> ActionsArr;
 
+	/** Whether add all actions in DefaultActions to ActionArr */
 	UPROPERTY(EditAnywhere, Category = "Actions")
 	bool bAddAllActions;
 
-	//UPROPERTY(BlueprintReadWrite, Category = "Actions")
-	//FNextAction NextAction;
-
-	// Called when the game starts
-	virtual void BeginPlay() override;
+	/** Whether can start act and move */
+	UPROPERTY(BlueprintReadWrite, Category = "Actions")
+	bool bCanAct;
 
 public:
+	/** Whether the left branch action can be started. */
 	bool bLeftBranchFlag;
+	/** Whether the right branch action can be started. */
 	bool bRightBranchFlag;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
+private:
+	UFSAction* CurrentAction;
+
+	/** Set the character can act and move. */
+	void SetCanAct(AFSCharacter* Instigator, bool b = true);
+
+public:
+	//~ Begin UActorComponent Interface.
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	//~ End UActorComponent Interface.
 };

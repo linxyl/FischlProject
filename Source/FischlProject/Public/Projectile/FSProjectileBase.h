@@ -23,27 +23,47 @@ public:
 	AFSProjectileBase();
 
 protected:
-
-	void Explode(AActor* Target);
-
+	/** Used to collision */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USphereComponent* SphereComp;
 
+	/** Movement component used for movement logic */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UProjectileMovementComponent* MoveComp;
+	UProjectileMovementComponent* MovementComp;
 
+	/** Effect when spawning */
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	UNiagaraSystem* SpawnVFX;
+
+	/** Effect when exploding */
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
 	UNiagaraSystem* ExplodeVFX;
 
+	/** Damage parameter caused to target */
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
 	FDamageParam Param;
 
-	TArray<AActor*> DamagedActors;
+	/** Whether to destroy self immediately after damaging the target */
+	UPROPERTY(EditDefaultsOnly)
+	bool bDamageOnce;
 
-	virtual void PostInitializeComponents() override;
+	/** Called when hitting enemy. */
+	void Explode(AActor* Target);
 
-	virtual void BeginPlay() override;
+	AActor* Target;
 
+protected:
+	/** Called when overlapping actors. */
 	UFUNCTION()
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+private:
+	/** Actors ignored in collision. */
+	TArray<AActor*> IgnoredActors;
+
+protected:
+	//~ Begin AActor Interface.
+	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
+	//~ End AActor Interface
 };

@@ -11,6 +11,6 @@ void UFSAnimNotify_Shoot::Notify(USkeletalMeshComponent* MeshComp, UAnimSequence
 	AFSCharacter* Instigator = Cast<AFSCharacter>(MeshComp->GetOwner());
 	if (Instigator)
 	{
-		Instigator->ShootComp->Shoot();
+		Instigator->GetShootComp()->Shoot(ProjectileClass, SerialNumber);
 	}
 }

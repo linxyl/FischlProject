@@ -2,34 +2,44 @@
 
 
 #include "Projectile/FSProjectileBase.h"
+
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "Actor/FSCharacter.h"
 #include "NiagaraFunctionLibrary.h"
 
+#include "Actor/FSCharacter.h"
+#include "Component/FSBuffComponent.h"
+#include "Actor/FSFischl.h"
+#include "Actor/FSOz.h"
+#include "Component/FSShootComponent.h"
+
 // Sets default values
-AFSProjectileBase::AFSProjectileBase()
+AFSProjectileBase::AFSProjectileBase():
+	bDamageOnce(true)
 {
 	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
 	SphereComp->SetCollisionProfileName("Projectile");
 
 	RootComponent = SphereComp;
 
-	MoveComp = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMoveComp");
-	MoveComp->bRotationFollowsVelocity = true;
-	MoveComp->bInitialVelocityInLocalSpace = true;
-	MoveComp->ProjectileGravityScale = 0.1f;
-	MoveComp->InitialSpeed = 3000;
+	MovementComp = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovementComp");
+	MovementComp->bRotationFollowsVelocity = true;
+	MovementComp->bInitialVelocityInLocalSpace = true;
+	MovementComp->ProjectileGravityScale = 0.1f;
+	MovementComp->InitialSpeed = 3000;
 }
 
-void AFSProjectileBase::Explode(AActor* Target)
+void AFSProjectileBase::Explode(AActor* ExplodeTarget)
 {
-	UFSFunctionLibrary::ApplyFuncDamage(GetInstigator(), Target, DamagedActors, GetActorLocation(), Param);
+	UFSFunctionLibrary::ApplyFuncDamage(GetInstigator(), ExplodeTarget, IgnoredActors, GetActorLocation(), Param);
 
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplodeVFX, GetActorLocation(), GetActorRotation(), FVector(1.f), true, true, ENCPoolMethod::None, true);
 
-	Destroy();
+	if (bDamageOnce)
+	{
+		Destroy();
+	}
 }
 
 void AFSProjectileBase::PostInitializeComponents()
@@ -43,14 +53,26 @@ void AFSProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SetLifeSpan(1.f);
+	Target = Cast<AFSCharacter>(GetInstigator())->LockedActor;
 
-	DamagedActors.Add(GetInstigator());
+	SetLifeSpan(60.f);
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SpawnVFX, GetActorLocation(), GetActorRotation(), FVector(1.f), true, true, ENCPoolMethod::None, true);
+
+	IgnoredActors.Add(GetInstigator());
 }
 
 void AFSProjectileBase::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	for (auto it : DamagedActors)
+	for (auto it : IgnoredActors)
+	{
+		if (it == OtherActor)
+		{
+			return;
+		}
+	}
+
+	for (auto it : Cast<AFSCharacter>(GetInstigator())->IgnoredActors)
 	{
 		if (it == OtherActor)
 		{

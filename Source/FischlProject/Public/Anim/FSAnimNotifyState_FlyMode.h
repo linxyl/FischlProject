@@ -8,7 +8,7 @@
 #include "FSAnimNotifyState_FlyMode.generated.h"
 
 /**
- * 
+ * Set to fly mode in the window
  */
 UCLASS()
 class FISCHLPROJECT_API UFSAnimNotifyState_FlyMode : public UAnimNotify_PlayMontageNotifyWindow
@@ -16,10 +16,13 @@ class FISCHLPROJECT_API UFSAnimNotifyState_FlyMode : public UAnimNotify_PlayMont
 	GENERATED_BODY()
 
 protected:
+	/** Whether to stop moving at the beginning */
 	UPROPERTY(EditAnywhere)
 	bool bStopMove;
 
 private:
+	//~ Begin UAnimNotifyState Interface.
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
 	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+	//~ End UAnimNotifyState Interface.
 };

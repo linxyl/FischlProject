@@ -8,8 +8,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
+#include "GameFramework/PlayerController.h"
 
 #include "Actor/FSCharacter.h"
+#include "Actor/FSFischl.h"
 #include "Typedef.h"
 
 bool UFSFunctionLibrary::ApplyFuncDamage(AActor* DamageCauser, AActor* TargetActor, UPARAM(ref) TArray<AActor*>& DamagedActor, const FVector ImpactPoint, const FDamageParam& DamageParam)
@@ -60,14 +62,11 @@ bool UFSFunctionLibrary::ApplyFuncDamage(AActor* DamageCauser, AActor* TargetAct
 
 	if (Target->GetMovementComponent()->IsFalling() || DamageParam.bEnbleFly)
 	{
-		//if (!Target->GetMovementComponent()->IsFalling() && DamageParam.bEnbleFly)
-		//{
-			Target->GetCharacterMovement()->GravityScale = UFSFunctionLibrary::SlowGravity();
-		//}
+		Target->GetCharacterMovement()->GravityScale = UFSFunctionLibrary::SlowGravity();
 
-		FVector Direction = TargetActor->GetActorLocation() - DamageCauser->GetActorLocation();
-		float Temp;
+		FVector Direction = DamageCauser->GetActorRotation().Vector();
 		Direction.Z = 0.0f;
+		float Temp;
 		Direction.ToDirectionAndLength(Direction, Temp);
 
 		Direction.X *= DamageParam.ForwardVelocity;
@@ -87,7 +86,20 @@ bool UFSFunctionLibrary::ApplyFuncDamage(AActor* DamageCauser, AActor* TargetAct
 	return true;
 }
 
-//UNiagaraComponent* UFSFunctionLibrary::CustomSpawnSystemAtLocation(AActor* Instigator, UNiagaraSystem* SystemTemplate, FVector SpawnLocation, FRotator SpawnRotation, FVector Scale)
-//{
-//	return UNiagaraFunctionLibrary::SpawnSystemAtLocation(Instigator->GetWorld(), SystemTemplate, SpawnLocation, SpawnRotation, Scale, true, true, ENCPoolMethod::None, true);
-//}
+void UFSFunctionLibrary::RotateByLockState(AFSCharacter* Instigator, bool bSetRot)
+{
+	if (!Instigator->bIsLocked || bSetRot)
+	{
+		AFSFischl* Fischl = Cast<AFSFischl>(Instigator);
+		if (Fischl && Fischl->IsInputingMoving())
+		{
+			float ControllerDirection = Fischl->GetController()->GetControlRotation().Yaw;
+			float Yaw = ControllerDirection + Fischl->GetInputMovingDirection();
+			Instigator->SetActorRotation(FRotator(0.f, Yaw, 0.f));
+		}
+	}
+	else if (Instigator->bIsLocked)
+	{
+		Instigator->SetActorRotation(FRotator(0.f, Instigator->LockedRot.Yaw, 0.f));
+	}
+}

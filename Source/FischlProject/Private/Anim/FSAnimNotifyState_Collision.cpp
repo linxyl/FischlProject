@@ -21,7 +21,7 @@ void UFSAnimNotifyState_Collision::NotifyBegin(USkeletalMeshComponent* MeshComp,
 		Instigator = Cast<AFSCharacter>(MeshComp->GetOwner());
 		if (Instigator)
 		{
-			Action = Instigator->ActionComp->FindAction(ActionName);
+			Action = Instigator->GetActionComp()->FindAction(ActionName);
 			ensure(Action);
 		}
 	}
@@ -53,6 +53,7 @@ void UFSAnimNotifyState_Collision::NotifyTick(USkeletalMeshComponent* MeshComp, 
 	FVector PosStart = SockLoc + SocketRot.RotateVector(OffsetStart);
 	FVector PosEnd = SockLoc + SocketRot.RotateVector(OffsetEnd);
 
+	TArray<FHitResult> AllResults;
 	Instigator->GetWorld()->SweepMultiByProfile(
 		AllResults,
 		PosStart,
@@ -65,7 +66,7 @@ void UFSAnimNotifyState_Collision::NotifyTick(USkeletalMeshComponent* MeshComp, 
 
 	for (auto& Res : AllResults)
 	{
-		if (Res.Actor != Instigator)
+		if (Res.Actor != Instigator && Res.Actor != Instigator->GetInstigator())
 		{
 			UFSFunctionLibrary::ApplyFuncDamage(Instigator, Res.Actor.Get(), Action->DamagedActors, Res.ImpactPoint, *DamageParam);
 			Action->CustomEvent(Instigator, Cast<AFSCharacter>(Res.Actor.Get()), 0.f);

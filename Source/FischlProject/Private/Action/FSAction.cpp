@@ -2,8 +2,10 @@
 
 
 #include "Action/FSAction.h"
-#include "Actor/FSCharacter.h"
+
 #include "GameFramework/CharacterMovementComponent.h"
+
+#include "Actor/FSCharacter.h"
 #include "FSFunctionLibrary.h"
 
 UFSAction::UFSAction()
@@ -11,30 +13,30 @@ UFSAction::UFSAction()
 	Cooldown = 0.f;
 	LastTime = 0.f;
 
-	bSetRotation = 1;
+	//bSetRotation = false;
+	bUpdateRotation = true;
+	bUseInputRotation = false;
 
 	bSlowGravityAfterAction = 1;
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UFSAction::StartAction_Implementation(AFSCharacter* Instigator, bool bHasArg, float Arg)
+void UFSAction::StartAction_Implementation(AFSCharacter* Instigator)
 {
-	UE_LOG(LogTemp, Log, TEXT("Started: %s, bHasArg = %d, Arg = %f"), *GetNameSafe(this), bHasArg, Arg);
+	UE_LOG(LogTemp, Log, TEXT("Started: %s"), *GetNameSafe(this));
 
 	LastTime = GetWorld()->TimeSeconds;
 
 	DamagedActors.Empty();
 
-	if (bSetRotation)
+	if (bResetVelocity)
 	{
-		if (Instigator->bIsLocked)
-		{
-			Instigator->SetActorRotation(FRotator(0.f, Instigator->LockedRot.Yaw, 0.f));
-		}
-		else if (bHasArg)
-		{
-			Instigator->SetActorRotation(FRotator(0.f, Arg, 0.f));
-		}
+		Instigator->GetCharacterMovement()->Velocity = { 0.f, 0.f, 0.f };
+	}
+
+	if (!ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Action.Release")) && bUpdateRotation)
+	{
+		UFSFunctionLibrary::RotateByLockState(Instigator, bUseInputRotation);
 	}
 
 	if (bResetGravity)
@@ -51,7 +53,7 @@ void UFSAction::StopAction_Implementation(AFSCharacter* Instigator)
 {
 	UE_LOG(LogTemp, Log, TEXT("Stopped: %s"), *GetNameSafe(this));
 
-	Instigator->bIsLaunching = false;
+	//Instigator->bIsLaunching = false;
 
 	if (bSlowGravityAfterAction)
 	{
@@ -61,5 +63,4 @@ void UFSAction::StopAction_Implementation(AFSCharacter* Instigator)
 
 void UFSAction::CustomEvent_Implementation(AFSCharacter* Instigator, AFSCharacter* Target, float Param)
 {
-
 }

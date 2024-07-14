@@ -5,7 +5,6 @@
 
 #include "Components/CapsuleComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -15,6 +14,8 @@
 #include "Typedef.h"
 #include "Component/FSWeaponComponent.h"
 #include "Component/FSShootComponent.h"
+#include "Component/FSBuffComponent.h"
+#include "Component/FSEffectComponent.h"
 
 // Sets default values
 AFSCharacter::AFSCharacter()
@@ -25,34 +26,75 @@ AFSCharacter::AFSCharacter()
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -90.f));
 	GetMesh()->SetRelativeRotation_Direct(FRotator(0.f, -90.f, 0.f));
 
-	// Init attribute component
 	AttributeComp = CreateDefaultSubobject<UFSAttributeComponent>("AttributeComp");
 	AttributeComp->SetMaxVal(100.0f, 100.0f, 100.0f);
-
-	// Init action component
 	ActionComp = CreateDefaultSubobject<UFSActionComponent>("ActionComp");
-
-	// Init shoot component
+	BuffComp = CreateDefaultSubobject<UFSBuffComponent>("BuffComp");
+	EffectComp = CreateDefaultSubobject<UFSEffectComponent>("EffectComp");
 	ShootComp = CreateDefaultSubobject<UFSShootComponent>("ShootComp");
 
-	// Set Effect
-	UObject* loadVFXObj = StaticLoadObject(UNiagaraSystem::StaticClass(), NULL, TEXT("NiagaraSystem'/Game/Effects/FX_HunmanInjured.FX_HunmanInjured'"));
-	if (loadVFXObj)
+	RootOffset = { 0.f, 0.f, -GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() };
+
+	//// Set Effect
+	//UObject* loadVFXObj = StaticLoadObject(UNiagaraSystem::StaticClass(), NULL, TEXT("NiagaraSystem'/Game/Effects/FX_HunmanInjured.FX_HunmanInjured'"));
+	//if (loadVFXObj)
+	//{
+	//	InjuredVFX = Cast<UNiagaraSystem>(loadVFXObj);
+	//}
+}
+
+void AFSCharacter::RotateByLocked(float MaxRotYaw)
+{
+	//Lock perspective
+	if (bIsLocked && LockedActor)
 	{
-		InjuredVFX = Cast<UNiagaraSystem>(loadVFXObj);
+		//Set Actor Rotation
+		FRotator CurRot = GetActorRotation();
+		FRotator DeltaRot = UKismetMathLibrary::NormalizedDeltaRotator(LockedRot, CurRot);
+
+		if (DeltaRot.Yaw > MaxRotYaw)
+		{
+			CurRot.Yaw += MaxRotYaw;
+			SetActorRotation(CurRot);
+		}
+		else if (DeltaRot.Yaw < -MaxRotYaw)
+		{
+			CurRot.Yaw -= MaxRotYaw;
+			SetActorRotation(CurRot);
+		}
+		else
+		{
+			SetActorRotation(LockedRot);
+		}
 	}
 }
 
-// Called when the game starts or when spawned
-void AFSCharacter::BeginPlay()
+void AFSCharacter::SetWeaponVisible(bool b /*= true*/)
 {
-	Super::BeginPlay();
-	
+	if (ensure(WeaponComponent))
+	{
+		WeaponComponent->SetVisibility(b);
+	}
+}
+
+bool AFSCharacter::UpdateOrientToMovement(bool bVal)
+{
+	return GetCharacterMovement()->bOrientRotationToMovement = bVal && !bIsLocked;
 }
 
 void AFSCharacter::ReceivedDamage(AActor* InstigatorActor, FVector ImpactPoint, FDamageParam DamageParam)
 {
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), InjuredVFX, ImpactPoint, DamageParam.Direction.GetInverse(), FVector(1.f), true, true, ENCPoolMethod::None, true);
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		GetEffectComp()->InjuredVFX,
+		ImpactPoint,
+		InstigatorActor->GetActorRotation() + DamageParam.Direction,
+		FVector(1.f),
+		true,
+		true,
+		ENCPoolMethod::None,
+		true
+	);
 }
 
 void AFSCharacter::PostInitializeComponents()
@@ -60,37 +102,6 @@ void AFSCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	OnReceivedDamage.AddDynamic(this, &AFSCharacter::ReceivedDamage);
-}
-
-void AFSCharacter::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-	
-	AFSCharacter* Character = Cast<AFSCharacter>(Hit.Actor);
-	if (!Character)
-	{
-		ActionComp->StopCurrentAction(this);
-		StopAnimMontage(GetCurrentMontage());
-
-		GetCharacterMovement()->GravityScale = DEFAULT_GRAVITY;
-
-		bIsLaunching = false;
-	}
-}
-
-bool AFSCharacter::SetOrientToMovement(bool bVal)
-{
-	return GetCharacterMovement()->bOrientRotationToMovement = bVal && !bIsLocked;
-}
-
-FORCEINLINE FVector AFSCharacter::GetRootLoaction() const
-{
-	return GetActorLocation() + RootOffset;
-}
-
-void AFSCharacter::SetWeaponVisible(bool b /*= true*/)
-{
-	Weapon->SetVisibility(true);
 }
 
 // Called every frame
@@ -107,17 +118,40 @@ void AFSCharacter::Tick(float DeltaTime)
 		GetCharacterMovement()->GravityScale += DeltaTime * 0.5;
 	}
 
-	//防止跳跃时撞到墙而使水平速度消失
-	//if (bIsLaunching)
-	//{
-	//	GetCharacterMovement()->Velocity = FVector(VelocityXY.X, VelocityXY.Y, GetVelocity().Z);
-	//}
+	UpdateLockedRot();
+	if (!GetCharacterMovement()->bOrientRotationToMovement && nullptr == ActionComp->GetCurrentAction() && GetCharacterMovement()->IsMovingOnGround())
+	{
+		RotateByLocked();
+	}
 }
 
-// Called to bind functionality to input
-void AFSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AFSCharacter::Landed(const FHitResult& Hit)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	Super::Landed(Hit);
 
+	AFSCharacter* Character = Cast<AFSCharacter>(Hit.Actor);
+	if (!Character)
+	{
+		ActionComp->StopCurrentAction(this);
+		StopAnimMontage(GetCurrentMontage());
+
+		GetCharacterMovement()->GravityScale = DEFAULT_GRAVITY;
+
+		//bIsLaunching = false;
+	}
 }
 
+void AFSCharacter::UpdateLockedRot()
+{
+	if (bIsLocked && LockedActor)
+	{
+		LockedRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), LockedActor->GetActorLocation());
+	}
+	else
+	{
+		LockedRot = GetActorRotation();
+	}
+
+	LockedRot.Pitch = 0.f;
+	LockedRot.Roll = 0.f;
+}

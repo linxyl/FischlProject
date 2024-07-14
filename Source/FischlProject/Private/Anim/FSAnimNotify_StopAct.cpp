@@ -10,6 +10,6 @@ void UFSAnimNotify_StopAct::Notify(USkeletalMeshComponent* MeshComp, UAnimSequen
 	AFSCharacter* Instigator = Cast<AFSCharacter>(MeshComp->GetOwner());
 	if (Instigator)
 	{
-		Instigator->ActionComp->StopCurrentAction(Instigator);
+		Instigator->GetActionComp()->StopCurrentAction(Instigator);
 	}
 }

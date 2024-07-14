@@ -16,7 +16,6 @@ void UFSAnimNotifyState_Move::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 	if (MeshComp)
 	{
 		Instigator = Cast<AFSCharacter>(MeshComp->GetOwner());
-
 		if (Instigator)
 		{
 			Instigator->bAnimNotifyStateEnd = false;
@@ -35,18 +34,16 @@ void UFSAnimNotifyState_Move::NotifyTick(USkeletalMeshComponent* MeshComp, UAnim
 		Velocity.Y = UKismetMathLibrary::DegSin(Yaw) * ForwardVelocity;
 		Velocity.Z = UpVelocity;
 
-		if (Instigator->GetCharacterMovement()->IsFalling())
+		//if (!Instigator->bStopAnimNotify)
 		{
-			Instigator->GetCharacterMovement()->Velocity = Velocity;
-		}
-		else
-		{
-			Instigator->LaunchCharacter(Velocity, true, true);
+			if (Instigator->GetCharacterMovement()->IsFalling() || Instigator->GetCharacterMovement()->IsFlying())
+			{
+				Instigator->GetCharacterMovement()->Velocity = Velocity;
+			}
+			else
+			{
+				Instigator->LaunchCharacter(Velocity, true, true);
+			}
 		}
 	}
-}
-
-void UFSAnimNotifyState_Move::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
-{
-	Super::NotifyEnd(MeshComp, Animation);
 }
